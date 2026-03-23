@@ -100,16 +100,25 @@ class ClassificationDataset(Dataset):
 class InstanceSegmentationDataset(Dataset):
     def __init__(self, folder, transform=None, use_cache=True):
         self.folder = folder
-        self.train_images = [
-            os.path.join(os.path.join(folder, "images"), image)
-            for image in os.listdir(os.path.join(self.folder, "images"))
-            if image.endswith(ALLOWED_DATASET_FILE_FORMATS)
+        # Build paired lists by matching basenames (stem) between images and masks
+        images_dir = os.path.join(self.folder, "images")
+        masks_dir = os.path.join(self.folder, "labels")
+        img_candidates = [
+            f
+            for f in os.listdir(images_dir)
+            if f.endswith(ALLOWED_DATASET_FILE_FORMATS) or f.endswith(".npy")
         ]
-        self.train_masks = [
-            os.path.join(os.path.join(folder, "labels"), image)
-            for image in os.listdir(os.path.join(self.folder, "labels"))
-            if image.endswith(ALLOWED_DATASET_FILE_FORMATS)
+        mask_candidates = [
+            f for f in os.listdir(masks_dir) if f.endswith(ALLOWED_DATASET_FILE_FORMATS)
         ]
+        # Map stem -> filename
+        def stem(name: str) -> str:
+            return os.path.splitext(name)[0]
+        img_map = {stem(f): f for f in img_candidates}
+        mask_map = {stem(f): f for f in mask_candidates}
+        common = sorted(set(img_map.keys()) & set(mask_map.keys()))
+        self.train_images = [os.path.join(images_dir, img_map[s]) for s in common]
+        self.train_masks = [os.path.join(masks_dir, mask_map[s]) for s in common]
         self.transform = transform
         self.use_cache = use_cache
         self.cached_data = []
@@ -207,16 +216,25 @@ class SegmentationDataset(Dataset):
     def __init__(self, folder, transform, class_weights=False):
         self.folder = folder
         self.transform = transform
-        self.train_images = [
-            os.path.join(os.path.join(folder, "images"), image)
-            for image in os.listdir(os.path.join(self.folder, "images"))
-            if image.endswith(ALLOWED_DATASET_FILE_FORMATS)
+        # Build paired lists by matching basenames (stem) between images and masks
+        images_dir = os.path.join(self.folder, "images")
+        masks_dir = os.path.join(self.folder, "labels")
+        img_candidates = [
+            f
+            for f in os.listdir(images_dir)
+            if f.endswith(ALLOWED_DATASET_FILE_FORMATS) or f.endswith(".npy")
         ]
-        self.train_masks = [
-            os.path.join(os.path.join(folder, "labels"), image)
-            for image in os.listdir(os.path.join(self.folder, "labels"))
-            if image.endswith(ALLOWED_DATASET_FILE_FORMATS)
+        mask_candidates = [
+            f for f in os.listdir(masks_dir) if f.endswith(ALLOWED_DATASET_FILE_FORMATS)
         ]
+        # Map stem -> filename
+        def stem(name: str) -> str:
+            return os.path.splitext(name)[0]
+        img_map = {stem(f): f for f in img_candidates}
+        mask_map = {stem(f): f for f in mask_candidates}
+        common = sorted(set(img_map.keys()) & set(mask_map.keys()))
+        self.train_images = [os.path.join(images_dir, img_map[s]) for s in common]
+        self.train_masks = [os.path.join(masks_dir, mask_map[s]) for s in common]
         if class_weights:
             vals = {}
             mask_loader = tqdm(self.train_masks)

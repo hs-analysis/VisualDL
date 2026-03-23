@@ -6,7 +6,7 @@ import pathlib
 setup(
     name="visualdl",
     packages=find_packages(),
-    version="0.0.9",
+    version="0.0.10",
     install_requires=[
         "segmentation_models_pytorch @ git+https://github.com/hs-analysis/segmentation_models.pytorch.git@master",
         "timm==0.6.13",
